@@ -281,27 +281,18 @@ pub unsafe fn terminate(shutdown_logging: bool) {
     ffi::PylonTerminate(shutdown_logging);
 }
 
-/// Wrap the CTlFactory type
-// Since in C++ `CTlFactory::GetInstance()` merely returns a reference to
-// a static object, here we don't store anything and instead get the
-// reference when needed.
-pub struct TlFactory<'a> {
-    lib: &'a Pylon,
-}
+pub struct TlFactory;
 
-impl<'a> TlFactory<'a> {
-    pub fn instance(lib: &'a Pylon) -> Self {
-        Self { lib }
-    }
-    pub fn create_first_device(&self) -> PylonResult<InstantCamera<'a>> {
+impl TlFactory {
+    pub fn create_first_device() -> PylonResult<InstantCamera> {
         let inner = ffi::tl_factory_create_first_device()?;
-        Ok(InstantCamera::new(self.lib, inner))
+        Ok(InstantCamera::new(inner))
     }
-    pub fn create_device(&self, device_info: &DeviceInfo) -> PylonResult<InstantCamera<'a>> {
+    pub fn create_device(device_info: &DeviceInfo) -> PylonResult<InstantCamera> {
         let inner = ffi::tl_factory_create_device(&device_info.inner)?;
-        Ok(InstantCamera::new(self.lib, inner))
+        Ok(InstantCamera::new(inner))
     }
-    pub fn enumerate_devices(&self) -> PylonResult<Vec<DeviceInfo>> {
+    pub fn enumerate_devices() -> PylonResult<Vec<DeviceInfo>> {
         let devs: cxx::UniquePtr<cxx::CxxVector<ffi::CDeviceInfo>> =
             ffi::tl_factory_enumerate_devices()?;
         Ok(devs
@@ -314,9 +305,7 @@ impl<'a> TlFactory<'a> {
 }
 
 /// Wrap the CInstantCamera type
-pub struct InstantCamera<'a> {
-    #[allow(dead_code)]
-    lib: &'a Pylon,
+pub struct InstantCamera {
     inner: cxx::UniquePtr<ffi::CInstantCamera>,
     #[cfg(feature = "stream")]
     fd: RefCell<Option<tokio::io::unix::AsyncFd<std::os::unix::io::RawFd>>>,
@@ -515,12 +504,11 @@ impl CommandNode {
     }
 }
 
-unsafe impl<'a> Send for InstantCamera<'a> {}
+unsafe impl Send for InstantCamera {}
 
-impl<'a> InstantCamera<'a> {
-    pub fn new(lib: &'a Pylon, inner: cxx::UniquePtr<ffi::CInstantCamera>) -> Self {
+impl InstantCamera {
+    pub fn new(inner: cxx::UniquePtr<ffi::CInstantCamera>) -> Self {
         InstantCamera {
-            lib,
             inner,
             #[cfg(feature = "stream")]
             fd: RefCell::new(None),
@@ -595,32 +583,32 @@ impl<'a> InstantCamera<'a> {
 }
 
 /// These methods return the various node maps.
-impl<'a> InstantCamera<'a> {
-    pub fn node_map<'map>(&'a self) -> NodeMap<'map, 'a> {
+impl InstantCamera {
+    pub fn node_map<'map>(&self) -> NodeMap<'map, '_> {
         NodeMap {
             inner: ffi::instant_camera_get_node_map(&self.inner),
             parent: std::marker::PhantomData,
         }
     }
-    pub fn tl_node_map<'map>(&'a self) -> NodeMap<'map, 'a> {
+    pub fn tl_node_map<'map>(&self) -> NodeMap<'map, '_> {
         NodeMap {
             inner: ffi::instant_camera_get_tl_node_map(&self.inner),
             parent: std::marker::PhantomData,
         }
     }
-    pub fn stream_grabber_node_map<'map>(&'a self) -> NodeMap<'map, 'a> {
+    pub fn stream_grabber_node_map<'map>(&self) -> NodeMap<'map, '_> {
         NodeMap {
             inner: ffi::instant_camera_get_stream_grabber_node_map(&self.inner),
             parent: std::marker::PhantomData,
         }
     }
-    pub fn event_grabber_node_map<'map>(&'a self) -> NodeMap<'map, 'a> {
+    pub fn event_grabber_node_map<'map>(&self) -> NodeMap<'map, '_> {
         NodeMap {
             inner: ffi::instant_camera_get_event_grabber_node_map(&self.inner),
             parent: std::marker::PhantomData,
         }
     }
-    pub fn instant_camera_node_map<'map>(&'a self) -> NodeMap<'map, 'a> {
+    pub fn instant_camera_node_map<'map>(&self) -> NodeMap<'map, '_> {
         NodeMap {
             inner: ffi::instant_camera_get_instant_camera_node_map(&self.inner),
             parent: std::marker::PhantomData,
