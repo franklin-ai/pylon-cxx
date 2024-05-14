@@ -129,7 +129,7 @@ namespace Pylon
 
     void instant_camera_start_grabbing_with_count(const std::unique_ptr<CInstantCamera> &camera, uint32_t count)
     {
-        camera->StartGrabbing(count);
+        camera->StartGrabbing(count, Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly);
     }
 
     void instant_camera_stop_grabbing(const std::unique_ptr<CInstantCamera> &camera)
